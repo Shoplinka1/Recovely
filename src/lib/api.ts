@@ -5,6 +5,8 @@ type ApiError = Error & {
   data?: unknown;
 };
 
+let bridgePromise: Promise<void> | null = null;
+
 const normalizeError = async (response: Response): Promise<ApiError> => {
   const data = await response.json().catch(() => null);
 
@@ -18,6 +20,32 @@ const normalizeError = async (response: Response): Promise<ApiError> => {
   error.data = data;
 
   return error;
+};
+
+const bridgeSupabaseSession = async (accessToken: string) => {
+  const response = await fetch('/api/auth/supabase-session', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ accessToken }),
+  });
+
+  if (!response.ok) {
+    throw await normalizeError(response);
+  }
+};
+
+const ensureRecovelySession = async (accessToken: string) => {
+  if (!bridgePromise) {
+    bridgePromise = bridgeSupabaseSession(accessToken).catch(error => {
+      bridgePromise = null;
+      throw error;
+    });
+  }
+
+  await bridgePromise;
 };
 
 async function request(
@@ -34,6 +62,8 @@ async function request(
       { status: 401 }
     );
   }
+
+  await ensureRecovelySession(accessToken);
 
   const options: RequestInit = {
     method,
@@ -75,6 +105,8 @@ async function request(
 }
 
 export const clearApiSession = async () => {
+  bridgePromise = null;
+
   try {
     await fetch('/api/auth/supabase-session/logout', {
       method: 'POST',
