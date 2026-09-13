@@ -5,6 +5,53 @@ type ApiError = Error & {
   data?: unknown;
 };
 
+let bridgedAccessToken = '';
+let bridgePromise: Promise<void> | null = null;
+
+const bridgeSupabaseSession = async (accessToken: string) => {
+  if (bridgedAccessToken === accessToken) {
+    return;
+  }
+
+  if (!bridgePromise) {
+    bridgePromise = (async () => {
+      const response = await fetch('/api/auth/supabase-session', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ accessToken }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.ok) {
+        const error = new Error(
+          typeof data?.message === 'string'
+            ? data.message
+            : `Could not establish authenticated session (${response.status})`
+        ) as ApiError;
+
+        error.status = response.status;
+        error.data = data;
+
+        throw error;
+      }
+
+      bridgedAccessToken = accessToken;
+    })().finally(() => {
+      bridgePromise = null;
+    });
+  }
+
+  await bridgePromise;
+
+  if (bridgedAccessToken !== accessToken) {
+    await bridgeSupabaseSession(accessToken);
+  }
+};
+
 const normalizeError = async (response: Response): Promise<ApiError> => {
   const data = await response.json().catch(() => null);
 
@@ -34,6 +81,8 @@ async function request(
       { status: 401 }
     );
   }
+
+  await bridgeSupabaseSession(accessToken);
 
   const options: RequestInit = {
     method,
@@ -86,6 +135,9 @@ export const clearApiSession = async () => {
     });
   } catch {
     // Supabase sign-out remains authoritative if bridge cleanup fails.
+  } finally {
+    bridgedAccessToken = '';
+    bridgePromise = null;
   }
 };
 
