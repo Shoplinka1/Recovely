@@ -66,8 +66,8 @@ type Dashboard = {
 type User = { userId: string; email?: string; name?: string };
 
 // Keep auth email links pointed at the live AppDeploy customer app. Change this single constant when the app moves to its final custom domain.
-const AUTH_REDIRECT_URL = 'https://recovely-b77j28.v2.appdeploy.ai/';
-const PASSWORD_RESET_REDIRECT_URL = 'https://recovely-b77j28.v2.appdeploy.ai/?reset=1';
+const AUTH_REDIRECT_URL = 'https://recovely.vercel.app/';
+const PASSWORD_RESET_REDIRECT_URL = 'https://recovely.vercel.app/?reset=1';
 
 const nav = [
   ['overview', 'Overview', LayoutDashboard],
