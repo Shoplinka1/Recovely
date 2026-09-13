@@ -240,8 +240,12 @@ function App() {
     setWorkspace(boot.value.data.workspace);
     setUser(boot.value.data.user);
     setDashboard(normalizedDashboard);
-    setRecoveries(rec.status === 'fulfilled' && Array.isArray(rec.value.data?.items) ? rec.value.data.items : []);
-  };
+    setRecoveries(rec.status === 'fulfilled' && Array.isArray(rec.value.data?.items) ? })().finally(() => {
+  refreshInFlight = null;
+});
+
+return refreshInFlight;
+};
   useEffect(() => {
     let alive = true;
     const loadSession = async () => {
