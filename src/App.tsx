@@ -286,16 +286,18 @@ function App() {
       }
       const nextUser = { userId: session.user.id, email: session.user.email, name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] };
       setUser(nextUser);
-      void (async () => {
-        try {
-          await refresh();
-          setSignedIn(true);
-        } catch (error) {
-          console.error('Authenticated workspace bootstrap failed', error);
-          setSignedIn(false);
-          setUser(null);
-        }
-      })();
+      setTimeout(() => {
+  void (async () => {
+    try {
+      await refresh();
+      setSignedIn(true);
+    } catch (error) {
+      console.error('Authenticated workspace bootstrap failed', error);
+      setSignedIn(false);
+      setUser(null);
+    }
+  })();
+}, 0);
     });
     const onHash = () => setPage(window.location.hash.replace('#', '') || 'overview');
     window.addEventListener('hashchange', onHash);
