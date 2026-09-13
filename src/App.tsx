@@ -241,11 +241,12 @@ function App() {
     setUser(boot.value.data.user);
     setDashboard(normalizedDashboard);
     setRecoveries(rec.status === 'fulfilled' && Array.isArray(rec.value.data?.items) ? })().finally(() => {
-  refreshInFlight = null;
-});
+      })().finally(() => {
+      refreshInFlight = null;
+    });
 
-return refreshInFlight;
-};
+    return refreshInFlight;
+  };
   useEffect(() => {
     let alive = true;
     const loadSession = async () => {
