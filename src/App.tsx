@@ -194,8 +194,13 @@ function App() {
   const [selected, setSelected] = useState<Recovery | null>(null);
   const [toast, setToast] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  let refreshInFlight: Promise<void> | null = null;
   const refresh = async () => {
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+
+  refreshInFlight = (async () => {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) return;
     const results = await Promise.allSettled([
