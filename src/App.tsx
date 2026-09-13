@@ -1782,7 +1782,9 @@ function BillingPage() {
             <p>{p.id === 'pro' ? 'Unlimited recovery tracking with advanced operational controls, evidence and reporting.' : 'For larger recovery operations needing broader team and reporting capacity.'}</p>
             {p.billingAmountMinor && <small className='billing-muted'>Paystack checkout: {money(p.billingAmountMinor, p.billingCurrency || 'NGN')} monthly equivalent.</small>}
             <ul><li>Real recovery lifecycle</li><li>Evidence and follow-ups</li><li>Advanced reporting</li></ul>
-            <button className='btn primary' disabled={state?.plan === p.id || !state?.paystackConfigured || !!busy} onClick={() => checkout(p.id)}>{busy === p.id ? 'Opening checkout…' : state?.plan === p.id ? 'Current plan' : state?.paystackConfigured ? `Choose ${p.name}` : 'Payment setup required'}</button>
+            <button className='btn primary' disabled={state?.plan === p.id || !!busy} onClick={() => checkout(p.id)}>
+  {busy === p.id ? 'Opening checkout…' : state?.plan === p.id ? 'Current plan' : `Choose ${p.name}`}
+</button>
             {!state?.paystackConfigured && <small className='billing-muted'>Paystack backend credentials are not configured yet.</small>}
           </section>
         ))}
