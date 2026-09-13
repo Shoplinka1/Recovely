@@ -12,6 +12,7 @@ const AUTH_HANDOFF_ORIGINS = new Set([
   'https://www.receiptguard.xyz',
   'https://getreceiptguard.xyz',
   'https://www.getreceiptguard.xyz',
+  'https://recovely.vercel.app',
 ]);
 const AUTH_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const AUTH_HANDOFF_TTL_MS = 2 * 60 * 1000;
