@@ -5,45 +5,6 @@ type ApiError = Error & {
   data?: unknown;
 };
 
-let bridgedAccessToken = '';
-let bridgePromise: Promise<void> | null = null;
-
-const bridgeSupabaseSession = async (accessToken: string) => {
-  if (bridgedAccessToken === accessToken) return;
-
-  if (!bridgePromise) {
-    bridgePromise = fetch('/api/auth/supabase-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ accessToken }),
-    })
-      .then(async (response) => {
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data?.ok) {
-          throw new Error(
-            data?.message ||
-              'Could not establish the authenticated workspace session.'
-          );
-        }
-
-        bridgedAccessToken = accessToken;
-      })
-      .finally(() => {
-        bridgePromise = null;
-      });
-  }
-
-  await bridgePromise;
-
-  if (bridgedAccessToken !== accessToken) {
-    await bridgeSupabaseSession(accessToken);
-  }
-};
-
 const normalizeError = async (response: Response): Promise<ApiError> => {
   const data = await response.json().catch(() => null);
 
@@ -74,13 +35,12 @@ async function request(
     );
   }
 
-  await bridgeSupabaseSession(accessToken);
-
   const options: RequestInit = {
     method,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
     },
   };
 
@@ -107,9 +67,7 @@ async function request(
     }
 
     const normalized = new Error(
-      error instanceof Error
-        ? error.message
-        : 'Request failed'
+      error instanceof Error ? error.message : 'Request failed'
     ) as ApiError;
 
     throw normalized;
@@ -128,9 +86,6 @@ export const clearApiSession = async () => {
     });
   } catch {
     // Supabase sign-out remains authoritative if bridge cleanup fails.
-  } finally {
-    bridgedAccessToken = '';
-    bridgePromise = null;
   }
 };
 
