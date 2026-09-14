@@ -1,64 +1,48 @@
 const BACKEND = 'https://recovely-b77j28.v2.appdeploy.ai';
 
 export default async function handler(req: Request) {
-  const url = new URL(req.url);
-  const upstreamUrl = `${BACKEND}${url.pathname}${url.search}`;
-
   try {
-    const headers = new Headers(req.headers);
+    const url = new URL(req.url);
+    const upstreamUrl = `${BACKEND}${url.pathname}${url.search}`;
 
+    const headers = new Headers(req.headers);
     headers.delete('host');
     headers.delete('content-length');
 
     const method = req.method || 'GET';
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const upstream = await fetch(upstreamUrl, {
+      method,
+      headers,
+      body:
+        method === 'GET' || method === 'HEAD'
+          ? undefined
+          : await req.arrayBuffer(),
+      redirect: 'manual',
+    });
 
-    try {
-      const response = await fetch(upstreamUrl, {
-        method,
-        headers,
-        body:
-          method === 'GET' || method === 'HEAD'
-            ? undefined
-            : await req.arrayBuffer(),
-        redirect: 'manual',
-        signal: controller.signal,
-      });
+    const responseHeaders = new Headers(upstream.headers);
+    responseHeaders.delete('transfer-encoding');
+    responseHeaders.delete('content-length');
 
-      const responseHeaders = new Headers(response.headers);
-      responseHeaders.delete('transfer-encoding');
-      responseHeaders.delete('content-length');
-
-      return new Response(response.body, {
-        status: response.status,
-        headers: responseHeaders,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: responseHeaders,
+    });
   } catch (error) {
-    const message =
-      error instanceof Error && error.name === 'AbortError'
-        ? 'The Recovely backend did not respond within 15 seconds.'
-        : 'Could not reach the Recovely backend from the Vercel proxy.';
-
-    console.error('Recovely AppDeploy proxy error:', error);
+    console.error('Recovely proxy error:', error);
 
     return new Response(
       JSON.stringify({
         ok: false,
-        proxy: true,
-        upstream: BACKEND,
-        message,
+        message: 'Recovely backend proxy failed.',
       }),
       {
-        status: 504,
+        status: 502,
         headers: {
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 }
