@@ -1,4 +1,4 @@
-const BACKEND = 'https://recovely-b77j28.v2.appdeploy.ai';
+const BACKEND = 'https://api-v2.appdeploy.ai/app/recovely-b77j28';
 
 export default async function handler(req: Request) {
   try {
