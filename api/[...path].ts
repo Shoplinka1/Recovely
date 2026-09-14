@@ -2,7 +2,7 @@ const BACKEND = 'https://recovely-b77j28.v2.appdeploy.ai';
 
 export default async function handler(req: any, res: any) {
   try {
-    const originalUrl = req.url || '/api';
+    const originalUrl = req.url || '/api/_healthcheck';
     const upstreamUrl = `${BACKEND}${originalUrl}`;
 
     const headers: Record<string, string> = {};
