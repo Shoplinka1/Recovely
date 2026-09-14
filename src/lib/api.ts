@@ -49,7 +49,12 @@ async function request(
   }
 
   try {
-    const response = await fetch(url, options);
+    const requestUrl =
+  method === 'GET'
+    ? url
+    : `https://recovely-b77j28.v2.appdeploy.ai${url}`;
+
+const response = await fetch(requestUrl, options);
 
     if (!response.ok) {
       throw await normalizeError(response);
