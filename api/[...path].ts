@@ -1,69 +1,51 @@
 const BACKEND = 'https://recovely-b77j28.v2.appdeploy.ai';
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: Request) {
   try {
-    const originalUrl = req.url || '/api/_healthcheck';
-    const upstreamUrl = `${BACKEND}${originalUrl}`;
+    const url = new URL(req.url);
 
-    const headers: Record<string, string> = {};
+    const upstreamUrl =
+      `${BACKEND}${url.pathname}${url.search}`;
 
-    for (const [key, value] of Object.entries(req.headers || {})) {
-      if (
-        value == null ||
-        key.toLowerCase() === 'host' ||
-        key.toLowerCase() === 'content-length'
-      ) {
-        continue;
-      }
+    const headers = new Headers(req.headers);
 
-      headers[key] = Array.isArray(value)
-        ? value.join(', ')
-        : String(value);
-    }
+    headers.delete('host');
+    headers.delete('content-length');
 
     const method = req.method || 'GET';
 
-    let body: string | undefined;
-
-    if (method !== 'GET' && method !== 'HEAD') {
-      if (typeof req.body === 'string') {
-        body = req.body;
-      } else if (req.body !== undefined) {
-        body = JSON.stringify(req.body);
-      }
-    }
-
-    const upstream = await fetch(upstreamUrl, {
+    const response = await fetch(upstreamUrl, {
       method,
       headers,
-      body,
+      body:
+        method === 'GET' || method === 'HEAD'
+          ? undefined
+          : await req.arrayBuffer(),
       redirect: 'manual',
     });
 
-    res.statusCode = upstream.status;
+    const responseHeaders = new Headers(response.headers);
 
-    upstream.headers.forEach((value, key) => {
-      if (
-        key.toLowerCase() !== 'transfer-encoding' &&
-        key.toLowerCase() !== 'content-length'
-      ) {
-        res.setHeader(key, value);
-      }
+    responseHeaders.delete('transfer-encoding');
+    responseHeaders.delete('content-length');
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: responseHeaders,
     });
-
-    const text = await upstream.text();
-
-    res.end(text);
   } catch (error) {
     console.error('Recovely AppDeploy proxy error:', error);
 
-    res.statusCode = 502;
-    res.setHeader('Content-Type', 'application/json');
-
-    res.end(
+    return new Response(
       JSON.stringify({
         message: 'Could not reach the Recovely backend.',
-      })
+      }),
+      {
+        status: 502,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     );
   }
 }
