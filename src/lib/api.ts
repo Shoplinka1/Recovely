@@ -36,13 +36,15 @@ async function request(
   }
 
   const options: RequestInit = {
-    method,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-  };
+  method,
+  credentials: 'include',
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+    'X-Recovely-Client': 'vercel',
+  },
+};
 
   if (method !== 'GET' && data !== undefined) {
     options.body = JSON.stringify(data);
