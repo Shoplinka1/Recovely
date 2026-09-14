@@ -1,27 +1,37 @@
-import type { IncomingMessage, ServerResponse } from 'node:http';
-
 const BACKEND = 'https://recovely-b77j28.v2.appdeploy.ai';
 
-const readBody = async (req: IncomingMessage) => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  return Buffer.concat(chunks);
-};
-
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
+export default async function handler(req: any, res: any) {
   try {
     const originalUrl = req.url || '/api';
-    const target = new URL(originalUrl, 'http://vercel.local');
-    const upstreamUrl = `${BACKEND}${target.pathname}${target.search}`;
+    const upstreamUrl = `${BACKEND}${originalUrl}`;
 
     const headers: Record<string, string> = {};
-    for (const [key, value] of Object.entries(req.headers)) {
-      if (value == null || key.toLowerCase() === 'host' || key.toLowerCase() === 'content-length') continue;
-      headers[key] = Array.isArray(value) ? value.join(', ') : value;
+
+    for (const [key, value] of Object.entries(req.headers || {})) {
+      if (
+        value == null ||
+        key.toLowerCase() === 'host' ||
+        key.toLowerCase() === 'content-length'
+      ) {
+        continue;
+      }
+
+      headers[key] = Array.isArray(value)
+        ? value.join(', ')
+        : String(value);
     }
 
     const method = req.method || 'GET';
-    const body = method === 'GET' || method === 'HEAD' ? undefined : await readBody(req);
+
+    let body: string | undefined;
+
+    if (method !== 'GET' && method !== 'HEAD') {
+      if (typeof req.body === 'string') {
+        body = req.body;
+      } else if (req.body !== undefined) {
+        body = JSON.stringify(req.body);
+      }
+    }
 
     const upstream = await fetch(upstreamUrl, {
       method,
@@ -33,16 +43,27 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     res.statusCode = upstream.status;
 
     upstream.headers.forEach((value, key) => {
-      if (key.toLowerCase() === 'transfer-encoding' || key.toLowerCase() === 'content-length') return;
-      res.setHeader(key, value);
+      if (
+        key.toLowerCase() !== 'transfer-encoding' &&
+        key.toLowerCase() !== 'content-length'
+      ) {
+        res.setHeader(key, value);
+      }
     });
 
-    const responseBody = Buffer.from(await upstream.arrayBuffer());
-    res.end(responseBody);
+    const text = await upstream.text();
+
+    res.end(text);
   } catch (error) {
-    console.error('AppDeploy API proxy failure', error);
+    console.error('Recovely AppDeploy proxy error:', error);
+
     res.statusCode = 502;
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ message: 'Could not reach the Recovely backend.' }));
+
+    res.end(
+      JSON.stringify({
+        message: 'Could not reach the Recovely backend.',
+      })
+    );
   }
 }
