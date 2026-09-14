@@ -1,10 +1,12 @@
 const BACKEND = 'https://recovely-b77j28.v2.appdeploy.ai';
 
 export default async function handler(req: Request) {
-  const url = new URL(req.url);
-  const upstreamUrl = `${BACKEND}${url.pathname}${url.search}`;
-
   try {
+    const url = new URL(req.url);
+
+    const upstreamUrl =
+      `${BACKEND}${url.pathname}${url.search}`;
+
     const headers = new Headers(req.headers);
 
     headers.delete('host');
@@ -12,25 +14,23 @@ export default async function handler(req: Request) {
 
     const method = req.method || 'GET';
 
-    const body =
-      method === 'GET' || method === 'HEAD'
-        ? undefined
-        : await req.arrayBuffer();
-
-    const upstream = await fetch(upstreamUrl, {
+    const response = await fetch(upstreamUrl, {
       method,
       headers,
-      body,
+      body:
+        method === 'GET' || method === 'HEAD'
+          ? undefined
+          : await req.arrayBuffer(),
       redirect: 'manual',
     });
 
-    const responseHeaders = new Headers(upstream.headers);
+    const responseHeaders = new Headers(response.headers);
 
     responseHeaders.delete('transfer-encoding');
     responseHeaders.delete('content-length');
 
-    return new Response(upstream.body, {
-      status: upstream.status,
+    return new Response(response.body, {
+      status: response.status,
       headers: responseHeaders,
     });
   } catch (error) {
@@ -38,7 +38,6 @@ export default async function handler(req: Request) {
 
     return new Response(
       JSON.stringify({
-        ok: false,
         message: 'Could not reach the Recovely backend.',
       }),
       {
@@ -46,7 +45,7 @@ export default async function handler(req: Request) {
         headers: {
           'Content-Type': 'application/json',
         },
-      },
+      }
     );
   }
 }
