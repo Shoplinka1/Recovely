@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://recovely-b77j28.v2.appdeploy.ai/api/:path*"
+      "destination": "https://api-v2.appdeploy.ai/app/recovely-b77j28/api/:path*"
     }
   ]
 }
